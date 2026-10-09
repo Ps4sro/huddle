@@ -15,6 +15,10 @@ A modern, lightweight group video calling web app designed to solve three major 
   * **OS Media Session:** Integrates with the system lock screen and notification shade with active call controls.
   * **Picture-in-Picture (PiP):** Allows mobile and desktop users to pop the call into a floating window so they can use other apps (texting, gaming, browsing) without interruption.
   * **Auto-Reconnection & Device Restoration:** If iOS momentarily suspends camera hardware when backgrounded, Huddle automatically re-acquires camera/mic upon returning without needing to refresh or rejoin.
+* **In-Call Text Chat & Floating Reactions:** Send messages with URL linkification and trigger animated emoji reactions (❤️, 👍, 😂, 🔥, 🎉, ✋, 👏) that float across everyone's screen.
+* **Audio & Video Settings:** Switch microphones, cameras, or audio output speakers on the fly with a live microphone volume test meter and speaker chime tester.
+* **Keyboard Shortcuts:** Desktop power user controls (`Space` for Push-to-talk, `M` for mute, `V` for camera, `C` for chat, `S` for screen share, `?` for cheat sheet).
+* **Native Web Share:** Instant link sharing through iOS/Android native share sheets (iMessage, WhatsApp, Messenger, SMS).
 * **Lightweight Signaling Server:** Built on Node.js and Socket.io to coordinate peer connections, room state, and ghost session cleanups.
 
 ---
