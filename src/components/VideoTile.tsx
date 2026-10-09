@@ -40,16 +40,29 @@ export function VideoTile({
     }
   }, [stream]);
 
-  // For remote peers, also bind stream to a dedicated <audio> element.
-  // This guarantees sound plays on mobile browsers even if the video element is hidden/paused.
+  // For remote peers, bind stream to a dedicated <audio> element.
+  // We keep <video> muted={true} so the OS doesn't kill audio when it pauses the video element.
   useEffect(() => {
     if (isLocal) return;
     const ael = audioRef.current;
     if (!ael) return;
     if (ael.srcObject !== stream) {
       ael.srcObject = stream;
-      void ael.play().catch(() => {});
     }
+    const ensurePlay = () => {
+      if (ael) {
+        void ael.play().catch(() => {});
+      }
+    };
+    ensurePlay();
+    document.addEventListener('visibilitychange', ensurePlay);
+    window.addEventListener('touchstart', ensurePlay, { once: true });
+    window.addEventListener('click', ensurePlay, { once: true });
+    return () => {
+      document.removeEventListener('visibilitychange', ensurePlay);
+      window.removeEventListener('touchstart', ensurePlay);
+      window.removeEventListener('click', ensurePlay);
+    };
   }, [stream, isLocal]);
 
   useEffect(() => {
@@ -66,7 +79,7 @@ export function VideoTile({
       className={`video-tile ${isSpeaking ? 'speaking' : ''}`}
       style={style}
     >
-      {/* Remote audio playback element */}
+      {/* Remote audio playback element (unmuted, handles 100% of audio output) */}
       {!isLocal && (
         <audio
           ref={audioRef}
@@ -75,12 +88,12 @@ export function VideoTile({
         />
       )}
 
-      {/* Video stream element */}
+      {/* Video stream element (ALWAYS muted so mobile browsers never kill audio when pausing video) */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
-        muted={isLocal}
+        muted={true}
         className={`tile-media ${isLocal && !screenSharing ? 'mirrored' : ''}`}
         style={{ display: showVideo ? 'block' : 'none' }}
       />

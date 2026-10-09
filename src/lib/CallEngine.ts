@@ -717,14 +717,21 @@ export class CallEngine {
     if (this.restoring || this.status === 'left') return;
     this.restoring = true;
     try {
-      if (this.audioEnabled && (!this.audioTrack || this.audioTrack.readyState === 'ended')) {
-        try {
-          this.audioTrack = await getMicTrack();
-          this.audioTrack.enabled = this.audioEnabled;
-          this.watchTrack(this.audioTrack, 'audio');
+      if (this.audioEnabled) {
+        if (!this.audioTrack || this.audioTrack.readyState === 'ended') {
+          try {
+            this.audioTrack = await getMicTrack();
+            this.audioTrack.enabled = this.audioEnabled;
+            this.watchTrack(this.audioTrack, 'audio');
+            await this.replaceOutgoing('audio');
+          } catch {
+            /* will retry on next visibility change */
+          }
+        } else {
+          // Re-affirm enabled state and re-pipe to RTCRtpSender to wake up WebKit audio pipeline
+          this.audioTrack.enabled = false;
+          this.audioTrack.enabled = true;
           await this.replaceOutgoing('audio');
-        } catch {
-          /* will retry on next visibility change */
         }
       }
       if (this.videoEnabled && !this.mediaBusy && (!this.cameraTrack || this.cameraTrack.readyState === 'ended')) {
