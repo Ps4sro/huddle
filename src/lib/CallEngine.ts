@@ -11,7 +11,8 @@ import type {
   RemoteParticipant,
   SignalData,
 } from '../types';
-import { canScreenShare, countCameras, getCameraTrack, getMicTrack, isMobile } from './media';
+import type { ChatMessage, ReactionEvent } from './chat';
+import { AUDIO_CONSTRAINTS, canScreenShare, countCameras, getCameraTrack, getMicTrack, isMobile } from './media';
 
 /**
  * CallEngine — owns the socket, every RTCPeerConnection, and local media.
@@ -176,6 +177,32 @@ export class CallEngine {
       const p = peer;
       p.queue = p.queue.then(() => this.handleSignal(p, data)).catch((err) => console.warn('[signal]', err));
     });
+    socket.on('chat-message', (msg: any) => {
+      this.fire({
+        type: 'chat-message',
+        message: {
+          id: msg.id,
+          senderId: msg.senderId,
+          senderName: msg.senderName,
+          text: msg.text,
+          timestamp: msg.timestamp,
+          isLocal: false,
+        },
+      });
+    });
+    socket.on('reaction', (r: any) => {
+      this.fire({
+        type: 'reaction',
+        reaction: {
+          id: r.id,
+          senderId: r.senderId,
+          senderName: r.senderName,
+          emoji: r.emoji,
+          xPercent: r.xPercent ?? Math.floor(20 + Math.random() * 60),
+          timestamp: r.timestamp,
+        },
+      });
+    });
 
     void countCameras().then((n) => {
       this.canFlip = isMobile || n > 1;
@@ -315,6 +342,90 @@ export class CallEngine {
     this.applyBitrates();
     this.broadcastMediaState();
     this.emit();
+  }
+
+  sendChatMessage(text: string) {
+    const trimmed = text.trim();
+    if (!this.socket || !trimmed) return;
+    const msgId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const msg: ChatMessage = {
+      id: msgId,
+      senderId: this.selfId ?? 'local',
+      senderName: this.name,
+      text: trimmed,
+      timestamp: Date.now(),
+      isLocal: true,
+    };
+    this.socket.emit('chat-message', { id: msgId, text: trimmed });
+    this.fire({ type: 'chat-message', message: msg });
+  }
+
+  sendReaction(emoji: string) {
+    const trimmed = emoji.trim();
+    if (!this.socket || !trimmed) return;
+    const reactionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const xPercent = Math.floor(20 + Math.random() * 60);
+    const reaction: ReactionEvent = {
+      id: reactionId,
+      senderId: this.selfId ?? 'local',
+      senderName: this.name,
+      emoji: trimmed,
+      xPercent,
+      timestamp: Date.now(),
+    };
+    this.socket.emit('reaction', { id: reactionId, emoji: trimmed, xPercent });
+    this.fire({ type: 'reaction', reaction });
+  }
+
+  async setAudioInputDevice(deviceId: string) {
+    if (this.mediaBusy) return;
+    this.mediaBusy = true;
+    try {
+      if (this.audioTrack) {
+        this.stopTrack(this.audioTrack);
+        this.audioTrack = null;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { ...AUDIO_CONSTRAINTS, deviceId: { exact: deviceId } },
+      });
+      const track = stream.getAudioTracks()[0];
+      if (track) {
+        track.enabled = this.audioEnabled;
+        this.audioTrack = track;
+        this.watchTrack(track, 'audio');
+        await this.replaceOutgoing('audio');
+      }
+    } catch {
+      this.fire({ type: 'media-error', message: 'Could not switch microphone.' });
+    } finally {
+      this.mediaBusy = false;
+      this.emit();
+    }
+  }
+
+  async setVideoInputDevice(deviceId: string) {
+    if (this.mediaBusy || !this.videoEnabled) return;
+    this.mediaBusy = true;
+    try {
+      if (this.cameraTrack) {
+        this.stopTrack(this.cameraTrack);
+        this.cameraTrack = null;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId }, width: { ideal: 960 }, height: { ideal: 540 } },
+      });
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        this.cameraTrack = track;
+        this.watchTrack(track, 'video');
+        if (!this.screenTrack) await this.replaceOutgoing('video');
+      }
+    } catch {
+      this.fire({ type: 'media-error', message: 'Could not switch camera.' });
+    } finally {
+      this.mediaBusy = false;
+      this.emit();
+    }
   }
 
   // ───────────────────────────── signaling ─────────────────────────────

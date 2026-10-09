@@ -386,6 +386,46 @@ io.on('connection', (socket) => {
   );
 
   socket.on(
+    'chat-message',
+    safe('chat-message', (payload) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || !isObject(payload)) return;
+      const info = rooms.get(roomId)?.get(socket.id);
+      if (!info) return;
+      if (typeof payload.text !== 'string' || !payload.text.trim()) return;
+      const text = payload.text.trim().slice(0, 1000);
+      const msg = {
+        id: typeof payload.id === 'string' ? payload.id.slice(0, 64) : Math.random().toString(36).slice(2),
+        senderId: socket.id,
+        senderName: info.name,
+        text,
+        timestamp: Date.now(),
+      };
+      socket.to(roomId).emit('chat-message', msg);
+    }),
+  );
+
+  socket.on(
+    'reaction',
+    safe('reaction', (payload) => {
+      const roomId = socket.data.roomId;
+      if (!roomId || !isObject(payload)) return;
+      const info = rooms.get(roomId)?.get(socket.id);
+      if (!info) return;
+      if (typeof payload.emoji !== 'string' || !payload.emoji.trim()) return;
+      const emoji = payload.emoji.trim().slice(0, 16);
+      const reaction = {
+        id: typeof payload.id === 'string' ? payload.id.slice(0, 64) : Math.random().toString(36).slice(2),
+        senderId: socket.id,
+        senderName: info.name,
+        emoji,
+        timestamp: Date.now(),
+      };
+      socket.to(roomId).emit('reaction', reaction);
+    }),
+  );
+
+  socket.on(
     'leave',
     safe('leave', () => leaveCurrentRoom(socket, 'leave')),
   );

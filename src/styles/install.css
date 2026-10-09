@@ -1,0 +1,450 @@
+/* ==========================================================================
+   Huddle — PWA Install Prompt, iOS Tooltip & Keyboard Shortcuts Modal Styles
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. PWA Install Banner & iOS Guidance
+   -------------------------------------------------------------------------- */
+.install-banner {
+  position: fixed;
+  bottom: calc(16px + var(--safe-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 640px;
+  z-index: 900;
+  padding: 16px 20px;
+  background: rgba(20, 23, 33, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(124, 92, 255, 0.28);
+  border-radius: 18px;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.65),
+    0 0 24px rgba(124, 92, 255, 0.12);
+  animation: bannerSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bannerSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 24px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.install-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.install-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(124, 92, 255, 0.12);
+  border: 1px solid rgba(124, 92, 255, 0.25);
+  border-radius: 12px;
+}
+
+.install-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.install-banner-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  letter-spacing: -0.01em;
+}
+
+.install-banner-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.45;
+}
+
+/* iOS Guidance Tooltip / Card */
+.ios-instructions-card {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(11, 13, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ios-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.ios-step-num {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-purple, #7c5cff), var(--accent-cyan, #22d3ee));
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.ios-share-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  margin: 0 2px;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 5px;
+  color: var(--accent-cyan, #22d3ee);
+  vertical-align: -2px;
+}
+
+.ios-plus-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0 2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #ffffff;
+  vertical-align: -2px;
+}
+
+/* Install Banner Buttons */
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.install-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, var(--accent-purple, #7c5cff) 0%, #6366f1 50%, var(--accent-cyan, #22d3ee) 100%);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 999px;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 14px rgba(124, 92, 255, 0.4);
+  white-space: nowrap;
+}
+
+.install-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 18px rgba(124, 92, 255, 0.55);
+}
+
+.install-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+}
+
+.install-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.install-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 999px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.install-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.install-btn-dismiss {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+
+.install-btn-dismiss:hover {
+  color: var(--text-secondary, #94a3b8);
+}
+
+.install-btn-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--text-muted, #64748b);
+  font-size: 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.install-btn-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f8fafc);
+}
+
+/* Responsive adjustments for mobile install banner */
+@media (max-width: 640px) {
+  .install-banner {
+    padding: 14px 16px;
+    width: calc(100% - 24px);
+  }
+
+  .install-banner-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .install-banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. Keyboard Shortcuts Cheat Sheet Modal
+   -------------------------------------------------------------------------- */
+.shortcuts-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(7, 9, 14, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: modalBackdropFadeIn 0.2s ease forwards;
+}
+
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.shortcuts-modal-container {
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #141721;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(124, 92, 255, 0.15);
+  animation: modalScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.shortcuts-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shortcuts-modal-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shortcuts-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  letter-spacing: -0.01em;
+}
+
+.shortcuts-modal-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted, #64748b);
+}
+
+.shortcuts-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-muted, #64748b);
+  font-size: 1rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.shortcuts-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f8fafc);
+}
+
+.shortcuts-modal-body {
+  padding: 16px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.shortcuts-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcuts-modal-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent-cyan, #22d3ee);
+  padding-left: 4px;
+}
+
+.shortcuts-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(11, 13, 18, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.shortcuts-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+}
+
+.shortcuts-modal-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.shortcuts-modal-desc {
+  font-size: 0.875rem;
+  color: #e2e8f0;
+}
+
+.shortcuts-modal-keys {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   3. Tactile 3D Keyboard Keycap Badges
+   -------------------------------------------------------------------------- */
+.kbd-keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #f1f5f9;
+  background: linear-gradient(180deg, #252b3b 0%, #171b26 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 3px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  text-transform: uppercase;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.kbd-keycap:active {
+  transform: translateY(1px);
+  border-bottom-width: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.shortcuts-modal-footer {
+  padding: 14px 24px;
+  background: rgba(11, 13, 18, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shortcuts-modal-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  display: block;
+  text-align: center;
+}

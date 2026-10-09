@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { CallEngine } from '../lib/CallEngine';
 import type { ToastMessage } from './Toast';
+import type { ChatMessage } from '../lib/chat';
 import { BackgroundKeeper } from '../lib/background';
 import { isPipSupported, stopSilentAudioKeepAlive, togglePictureInPicture } from '../lib/audioKeeper';
 import { roomUrl } from '../lib/rooms';
 import { isMobile } from '../lib/media';
+import { shareRoom } from '../lib/share';
 import { useAudioLevels, type AudioSource } from '../hooks/useAudioLevels';
 import { useGridLayout } from '../hooks/useGridLayout';
+import { useShortcuts } from '../hooks/useShortcuts';
 import { VideoTile } from './VideoTile';
 import { Controls } from './Controls';
 import { ToastContainer } from './Toast';
+import { Chat } from './Chat';
+import { FloatingReactionsOverlay, QuickReactionsBar, useFloatingReactions } from './Reactions';
+import { SettingsModal } from './SettingsModal';
+import { InstallBanner } from './InstallBanner';
+import { ShortcutsModal } from './ShortcutsModal';
 import { LinkIcon, PipIcon, UsersIcon } from './Icons';
 
 export type RoomProps = {
@@ -23,6 +31,17 @@ export function Room({ engine, onLeave }: RoomProps) {
   const [pipAvailable] = useState(() => isPipSupported());
   const [showBgBanner, setShowBgBanner] = useState(() => isMobile);
 
+  // Subsystem states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  const [isReactionsOpen, setIsReactionsOpen] = useState(false);
+  const { reactions: floatingReactions, addReaction, removeReaction } = useFloatingReactions();
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
   const gridRef = useRef<HTMLDivElement | null>(null);
   const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const bgKeeperRef = useRef<BackgroundKeeper | null>(null);
@@ -35,18 +54,37 @@ export function Room({ engine, onLeave }: RoomProps) {
     }, 3500);
   }, []);
 
-  // Listen for engine events (peer join / leave / errors)
+  // Listen for engine events (peer join / leave / errors / chat / reactions)
   useEffect(() => {
-    return engine.onEvent((event) => {
+    const unsub = engine.onEvent((event) => {
       if (event.type === 'peer-joined') {
         addToast(`${event.name} joined`);
       } else if (event.type === 'peer-left') {
         addToast(`${event.name} left`);
       } else if (event.type === 'media-error') {
         addToast(`⚠️ ${event.message}`);
+      } else if (event.type === 'chat-message') {
+        setChatMessages((prev) => [...prev, event.message]);
+        if (!isChatOpen) {
+          setUnreadChatCount((count) => count + 1);
+        }
+      } else if (event.type === 'reaction') {
+        addReaction(event.reaction);
       }
     });
-  }, [engine, addToast]);
+    return () => {
+      unsub();
+    };
+  }, [engine, addToast, isChatOpen, addReaction]);
+
+  // Reset unread count when chat opens
+  const handleToggleChat = useCallback(() => {
+    setIsChatOpen((prev) => {
+      const next = !prev;
+      if (next) setUnreadChatCount(0);
+      return next;
+    });
+  }, []);
 
   // Manage BackgroundKeeper for MediaSession and WakeLock
   useEffect(() => {
@@ -104,34 +142,21 @@ export function Room({ engine, onLeave }: RoomProps) {
   const totalCount = snapshot.participants.length + 1;
   const layout = useGridLayout(gridRef, totalCount, 12);
 
-  // Copy room link to clipboard
-  const handleCopyLink = useCallback(async () => {
+  // Share room link via native share sheet or clipboard
+  const handleShareLink = useCallback(async () => {
     const url = roomUrl(snapshot.roomId);
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const input = document.createElement('input');
-        input.value = url;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-      }
+    const result = await shareRoom(snapshot.roomId, url);
+    if (result.copied) {
       addToast('Room link copied to clipboard!');
-    } catch {
-      addToast(`Share link: ${url}`);
     }
   }, [snapshot.roomId, addToast]);
 
-  // Picture-in-Picture trigger (helps audio/video survive app switching on phones)
+  // Picture-in-Picture trigger
   const handleTogglePip = useCallback(async () => {
-    // Pick the active speaker's video, or any available video
     let targetEl: HTMLVideoElement | null = null;
     if (activeSpeaker && videoElementsRef.current.has(activeSpeaker)) {
       targetEl = videoElementsRef.current.get(activeSpeaker)!;
     } else {
-      // Pick first remote or local video element
       for (const el of videoElementsRef.current.values()) {
         if (el && el.readyState >= 2) {
           targetEl = el;
@@ -160,9 +185,25 @@ export function Room({ engine, onLeave }: RoomProps) {
     }
   }, []);
 
+  // Desktop keyboard shortcuts (Space for PTT, M for mic, V for cam, C for chat, ? for help)
+  useShortcuts({
+    onToggleMic: () => engine.toggleAudio(),
+    onToggleCam: () => engine.toggleVideo(),
+    onToggleChat: handleToggleChat,
+    onToggleScreenShare: () => engine.toggleScreenShare(),
+    onOpenShortcuts: () => setIsShortcutsOpen(true),
+    onCloseShortcuts: () => setIsShortcutsOpen(false),
+    isAudioEnabled: snapshot.local.audioEnabled,
+    setAudioEnabled: (enabled) => engine.setAudioEnabled(enabled),
+    enabled: !isChatOpen && !isSettingsOpen,
+  });
+
   return (
     <div className="room-container">
       <ToastContainer toasts={toasts} />
+
+      {/* Floating Emoji Reactions Overlay */}
+      <FloatingReactionsOverlay reactions={floatingReactions} onReactionComplete={removeReaction} />
 
       {/* Top Header */}
       <header className="room-header">
@@ -178,14 +219,17 @@ export function Room({ engine, onLeave }: RoomProps) {
           <button
             type="button"
             className="pill-btn"
-            onClick={handleCopyLink}
-            aria-label="Copy meeting link"
+            onClick={handleShareLink}
+            aria-label="Share meeting link"
           >
             <LinkIcon width={15} height={15} />
-            <span>Copy Link</span>
+            <span>Share Link</span>
           </button>
         </div>
       </header>
+
+      {/* PWA Install Banner */}
+      <InstallBanner />
 
       {/* Mobile Background Audio Guidance Banner */}
       {showBgBanner && pipAvailable && (
@@ -255,6 +299,42 @@ export function Room({ engine, onLeave }: RoomProps) {
         </div>
       </main>
 
+      {/* Quick Reaction Bar (docked above control dock when open) */}
+      <QuickReactionsBar
+        isOpen={isReactionsOpen}
+        onSelectEmoji={(emoji) => {
+          engine.sendReaction(emoji);
+          setIsReactionsOpen(false);
+        }}
+        onClose={() => setIsReactionsOpen(false)}
+      />
+
+      {/* In-Call Text Chat Drawer */}
+      <Chat
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        messages={chatMessages}
+        onSendMessage={(text) => engine.sendChatMessage(text)}
+        currentUserId={snapshot.selfId ?? 'local'}
+        unreadCount={unreadChatCount}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentAudioTrack={snapshot.local.previewStream?.getAudioTracks()[0]}
+        currentVideoTrack={snapshot.local.previewStream?.getVideoTracks()[0]}
+        onMicChange={(deviceId) => engine.setAudioInputDevice(deviceId)}
+        onCameraChange={(deviceId) => engine.setVideoInputDevice(deviceId)}
+      />
+
+      {/* Keyboard Shortcuts Help Modal */}
+      <ShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
+
       {/* Control Dock */}
       <Controls
         local={snapshot.local}
@@ -263,9 +343,15 @@ export function Room({ engine, onLeave }: RoomProps) {
         onFlipCam={() => engine.flipCamera()}
         onToggleScreenShare={() => engine.toggleScreenShare()}
         onTogglePip={handleTogglePip}
-        onCopyLink={handleCopyLink}
+        onCopyLink={handleShareLink}
         onLeave={handleLeave}
         pipAvailable={pipAvailable}
+        onToggleChat={handleToggleChat}
+        isChatOpen={isChatOpen}
+        unreadChatCount={unreadChatCount}
+        onToggleReactions={() => setIsReactionsOpen((prev) => !prev)}
+        isReactionsOpen={isReactionsOpen}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
     </div>
   );

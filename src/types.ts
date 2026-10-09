@@ -63,7 +63,11 @@ export type CallSnapshot = {
   local: LocalState;
 };
 
+import type { ChatMessage, ReactionEvent } from './lib/chat';
+
 export type CallEvent =
   | { type: 'peer-joined'; name: string }
   | { type: 'peer-left'; name: string }
-  | { type: 'media-error'; message: string };
+  | { type: 'media-error'; message: string }
+  | { type: 'chat-message'; message: ChatMessage }
+  | { type: 'reaction'; reaction: ReactionEvent };

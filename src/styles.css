@@ -1,3 +1,7 @@
+@import './styles/chat.css';
+@import './styles/settings.css';
+@import './styles/install.css';
+
 :root {
   --bg-primary: #0b0d12;
   --bg-surface: #141721;
